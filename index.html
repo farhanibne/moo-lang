@@ -1,0 +1,401 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>COW Lang Generator 🐮</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta name="viewport" content="width=device-width, initial-scale=0.5">
+<link rel="shortcut icon" href="dz.png" type="image/x-icon">
+<style type="text/css">
+UNKNOWN {
+	COLOR: #000000; FONT-FAMILY: verdana, sans-serif
+}
+BODY {
+	FONT-FAMILY: verdana, sans-serif
+}
+pre {background:#eeeeee;border:1px solid #777777;padding:4px}
+
+</style>
+<script type="text/javascript">
+
+<!--
+
+var result = ""
+
+function print(text) {
+	result = result + text
+}
+
+function newline(text) {
+	result = result + "\n"
+}
+
+function printChar(code)  {
+	print(String.fromCharCode(code))
+}
+
+function printNumber(number) {
+	print(number)
+	newline()
+}
+
+function exec(instruction) {
+	switch (instruction) {
+		// moo
+		case 0:
+			if (progPos == 0) {
+				return false
+			} else {
+				progPos--  // skip previous command.
+				level = 1
+				while (level > 0) {
+					if (progPos == 0) {
+						break
+					}
+					progPos--
+					if (cowProgram[progPos] == 0) {
+						level++
+					} else if (cowProgram[progPos] == 7) {  // look for MOO
+						level--
+					}
+				}
+				if (level != 0) {
+					return false
+				}
+				return exec(cowProgram[progPos])
+			}
+			break
+    
+		// mOo
+		case 1:
+			if (memPos == 0) {
+				return false
+			} else {
+				memPos--
+			}
+			break
+
+		// moO
+		case 2:
+			memPos++
+			if (memPos == memory.length) {
+				memory.push(0)
+			}
+			break
+    
+		// mOO    
+		case 3:
+			if (memory[memPos] == 3) {
+				return false
+			} else {
+				return exec(memory[memPos])
+			}
+			break
+    
+		// Moo
+		case 4:
+			if (memory[memPos] != 0) {
+				printChar(memory[memPos])
+			} else {
+				memory[memPos] = Text.charCodeAt(window.prompt("please enter a character"))
+			}
+			break
+		
+		// MOo
+		case 5:
+			memory[memPos]--
+			break
+		
+		// MoO
+		case 6:
+			memory[memPos]++
+			break
+		
+		// MOO
+		case 7:
+			if (memory[memPos] == 0) {
+				var level = 1
+				var prev = 0
+				progPos++  // have to skip past next command when looking for next moo.
+				if (progPos == cowProgram.length) {
+					break
+				}
+				while (level > 0) {
+					prev = cowProgram[progPos]
+					progPos++
+					if (progPos == cowProgram.length) {
+						break
+					}
+					if (cowProgram[progPos] == 7) {
+						level++
+					} else {
+						if (cowProgram[progPos] == 0) {  // look for moo command.
+							level--
+							if (prev == 7) {
+								level--
+							}
+						}
+					}
+				}
+				if (level != 0) {
+					return false
+				}
+			}
+			break
+		
+		// OOO
+		case 8:
+			memory[memPos] = 0
+			break
+		
+		// MMM
+		case 9:
+			if (registerVal == undefined) {
+				registerVal = memory[memPos]
+			} else {
+				memory[memPos] = registerVal
+				registerVal = undefined
+			}
+			break
+		
+		// OOM
+		case 10:
+			printNumber(memory[memPos])
+			break
+		
+		// oom
+		case 11:
+			memory[memPos] = parseFloat(window.prompt("please enter a number"))
+			break
+		
+		// bad stuff
+		default:
+			return false
+	}
+	progPos++
+	return true
+}
+
+function executeProgram() {
+	// read program
+	result = ""
+	var tokens = [ "moo", "mOo", "moO", "mOO", "Moo", "MOo",
+		"MoO", "MOO", "OOO", "MMM", "OOM", "oom"]
+	cowIn = document.getElementById("CowProgram")
+	var token = "   "
+	cowProgram = new Array()
+	for (var i = 0; i < cowIn.value.length; i++) {
+		token = token.substring(1) + cowIn.value.charAt(i)
+		for (var j = 0; j < tokens.length; j++) {
+			if (tokens[j] == token) {
+				cowProgram.push(j)
+				token = "   "
+				break
+			}
+		}
+	}
+
+	// execute
+	progPos = 0
+	registerVal = undefined
+	memory = new Array()
+	memPos = 0
+	memory.push(0)
+	while (progPos != cowProgram.length) {
+		if (!exec(cowProgram[progPos])) {
+			break
+		}
+	}
+	newline()
+	print("Done.")
+	cowOut = document.getElementById("CowResult")
+	cowOut.value = result
+}
+
+function generateProgram() {
+	// initial program: store 8, 16, 32 and 64 in memory positions 1, 2, 3 and 4, current memory position is 5
+	var program = "OOOMoOMoOMoOMoOMoOMoOMoOMoOMMMmoOMMMMMMmoOMMMMOOMOomOoMoOmoOmoomOoMMMmoOMMMMMMmoOMMMMOOMOomOoMoOmoOmoomOoMMMmoOMMMMMMmoOMMMMOOMOomOoMoOmoOmoo"
+
+	cowOut = document.getElementById("CowResult")
+	for (var i = 0; i < cowOut.value.length; i++) {
+		// next character, ignore non-ASCII
+		var c = cowOut.value.charCodeAt(i)
+		if (c > 127) continue;
+		
+		// clear position 5 and 6
+		program += "OOOmoOOOOmOo"
+		
+		// add bits
+		for (var j = 6; j > 3; j--) {
+			var mask = 1 << j
+			if (c > mask) {
+				switch (j) {
+					case 6:
+						// position 5 = 64
+						program += "mOoMMMmoOMMM"
+						break
+					case 5:
+						// position 5 = 32
+						program += "mOomOoMMMmoOmoOMMM"
+						break
+					case 4:
+						// position 5 = 16
+						program += "mOomOomOoMMMmoOmoOmoOMMM"
+						break
+				}
+
+				program += "MOOMOomoOMoOmOomoo"
+				c -= mask
+			}
+		}
+		
+
+		program += "moO"
+		for (var j = 0; j < c; j++) {
+			program += "MoO"
+		}
+		program += "MoomOo"
+	}
+
+
+	var programFormatted = ""
+	while (true) {
+		if (program.length > 66) {
+			programFormatted += program.substring(0, 66)
+			programFormatted += "\n"
+			program = program.substring(66)
+		} else {
+			programFormatted += program
+			programFormatted += "\n"
+			break
+		}
+	}
+	cowIn = document.getElementById("CowProgram")
+	cowIn.value = programFormatted
+}
+
+
+-->
+</script>
+</head>
+<body bgcolor="#FFFFFF" 
+style="
+/* make content fit under screen on mobile device  */
+min-height: 100%;
+/* create abstract and aweosme  background */
+background: #f0f0f0;
+background: -moz-linear-gradient(top, #f0f0f0 0%, #e0e0e0 100%);
+background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f0f0f0), color-stop(100%,#e0e0e0));
+background: -webkit-linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+background: -o-linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+background: -ms-linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+background: linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f0f0f0', endColorstr='#e0e0e0',GradientType=0 );
+
+
+">
+<center>
+    <h1>Cow Lang Generator</h1>
+    <textarea id="CowProgram" rows="10" cols="80"
+    style="
+    /* create abstract and aweosme  text area */
+    background: #f0f0f0;
+    background: -moz-linear-gradient(top, #f0f0f0 0%, #e0e0e0 100%);
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f0f0f0), color-stop(100%,#e0e0e0));
+    background: -webkit-linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+    background: -o-linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+    background: -ms-linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+    background: linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f0f0f0', endColorstr='#e0e0e0',GradientType=0 );
+    border: 1px solid #000000;
+    border-radius: 5px;
+    box-shadow: 0 0 5px #000000;
+    padding: 20px;
+    font-family: monospace;
+    font-size: 12px;
+    font-family: monospace; font-size: 12px; background-color: #FFFFFF; border: 1px solid #000000; padding: 5px; margin: 5px; overflow: auto; resize: none;
+
+
+
+
+
+
+
+    
+    " >Only COW code Goes here </textarea> <br><br><br>
+
+    <input type="button" value="Convert Text ⬇️" onclick="executeProgram()"  style="
+    
+    /* create beacutiul button */
+    background: #f0f0f0;
+    background: -moz-linear-gradient(top, #f0f0f0 0%, #e0e0e0 100%);
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f0f0f0), color-stop(100%,#e0e0e0));
+    background: -webkit-linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+    background: -o-linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+    background: -ms-linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+    background: linear-gradient(to bottom, #f0f0f0 0%,#e0e0e0 100%);
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f0f0f0', endColorstr='#e0e0e0',GradientType=0 );
+    border: 1px solid #000000;
+    border-radius: 5px;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    box-shadow: 0px 0px 5px #000000;
+    -moz-box-shadow: 0px 0px 5px #000000;
+    -webkit-box-shadow: 0px 0px 5px #000000;
+    font-family: Arial;
+    color: #000000;
+    font-size: 20px;
+    padding: 10px 20px 10px 20px;
+    text-decoration: none;
+    "></p> <br>
+
+    <input type="button" value="Convert Moo ⬆️" onclick="generateProgram()" style="
+    
+    /* create beacutiul button */
+    background: #f0f0f0;
+    background: -moz-linear-gradient(top, #f0f0f0 0%, #e0e0e0 100%);
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f0f0f0), color-stop(100%,#e0e0e0));
+    background: -webkit-linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+    background: -o-linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+    background: -ms-linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+    background: linear-gradient(to bottom, #f0f0f0 0%,#e0e0e0 100%);
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f0f0f0', endColorstr='#e0e0e0',GradientType=0 );
+    border: 1px solid #000000;
+    border-radius: 5px;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    box-shadow: 0px 0px 5px #000000;
+    -moz-box-shadow: 0px 0px 5px #000000;
+    -webkit-box-shadow: 0px 0px 5px #000000;
+    font-family: Arial;
+    color: #000000;
+    font-size: 20px;
+    padding: 10px 20px 10px 20px;
+    text-decoration: none;
+    "></p> <br>
+
+    <textarea id="CowResult" rows="10" cols="80" style="
+    /* create abstract and aweosme  text area */
+    background: #f0f0f0;
+    background: -moz-linear-gradient(top, #f0f0f0 0%, #e0e0e0 100%);
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f0f0f0), color-stop(100%,#e0e0e0));
+    background: -webkit-linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+    background: -o-linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+    background: -ms-linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+    background: linear-gradient(top, #f0f0f0 0%,#e0e0e0 100%);
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f0f0f0', endColorstr='#e0e0e0',GradientType=0 );
+    border: 1px solid #000000;
+    border-radius: 5px;
+    box-shadow: 0 0 5px #000000;
+    padding: 5px;
+    font-family: monospace;
+    font-size: 12px;
+    ">Text goes here</textarea>
+    
+
+</center>
+
+
+
+</body>
+</html>
